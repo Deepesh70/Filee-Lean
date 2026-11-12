@@ -1,0 +1,39 @@
+<!--
+  Central package management: every NuGet version lives here.
+  Project files reference packages without a Version attribute.
+-->
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup Label="Infrastructure">
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
+  </ItemGroup>
+
+  <ItemGroup Label="Conversion engines">
+    <!-- Stay on 6.2: 6.5 is AGPL-3.0-only (6.2 is MIT) and checks for a license at run time (PdfSharpLicenseException). -->
+    <PackageVersion Include="PDFsharp" Version="6.2.4" />
+    <PackageVersion Include="PDFtoImage" Version="5.2.1" />
+    <PackageVersion Include="Markdig" Version="1.5.1" />
+    <PackageVersion Include="AngleSharp" Version="1.2.0" />
+    <PackageVersion Include="ExcelNumberFormat" Version="1.1.0" />
+    <PackageVersion Include="Svg.Skia" Version="5.1.1" />
+    <PackageVersion Include="SkiaSharp" Version="3.119.4" />
+    <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.4" />
+    <PackageVersion Include="ExcelDataReader" Version="3.9.0" />
+    <PackageVersion Include="PdfPig" Version="0.1.16" />
+    <PackageVersion Include="YamlDotNet" Version="18.1.0" />
+    <PackageVersion Include="Tomlyn" Version="2.10.1" />
+  </ItemGroup>
+
+  <ItemGroup Label="Tests">
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <!-- Tests only: validates generated DOCX files against the Office Open XML schemas. -->
+    <PackageVersion Include="DocumentFormat.OpenXml" Version="3.5.1" />
+  </ItemGroup>
+</Project>

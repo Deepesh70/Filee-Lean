@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Filee.Core\Filee.Core.csproj" />
+    <ProjectReference Include="..\..\src\Filee.Engines\Filee.Engines.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="*Tests.cs;*Builder*.cs;*Assert*.cs;RealPath*.cs;ScriptText*.cs;SizeLimit*.cs;StallWatch*.cs;QuirkyZip.cs;SymbolFont*.cs;ArabicSheet*.cs;Docx*.cs" />
+    <Compile Include="SkiaImageConverterTests.cs" />
+  </ItemGroup>
+</Project>

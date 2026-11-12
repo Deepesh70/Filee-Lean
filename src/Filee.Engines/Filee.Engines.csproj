@@ -1,0 +1,41 @@
+<!--
+  Filee.Engines: IConverter implementations (one file per engine) and helpers to find external tools.
+  Register new engines in EngineRegistry.cs.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Filee.Engines</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Filee.Core\Filee.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PDFsharp" />
+    <PackageReference Include="PDFtoImage" />
+    <PackageReference Include="Markdig" />
+    <PackageReference Include="AngleSharp" />
+    <PackageReference Include="ExcelNumberFormat" />
+    <PackageReference Include="Svg.Skia" />
+    <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" />
+    <PackageReference Include="ExcelDataReader" />
+    <PackageReference Include="PdfPig" />
+    <PackageReference Include="YamlDotNet" />
+    <PackageReference Include="Tomlyn" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Filee" />
+    <InternalsVisibleTo Include="Filee.Engines.Tests" />
+    <InternalsVisibleTo Include="Filee.App.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Pinned downloads of optional engines, also read by build/fetch-engines.ps1. -->
+    <EmbeddedResource Include="Infrastructure\engines.json" LogicalName="Filee.Engines.engines.json" />
+  </ItemGroup>
+</Project>
