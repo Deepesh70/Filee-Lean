@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Publish Release
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Ensure MinGW GCC in PATH
+        shell: pwsh
+        run: |
+          if (-not (Get-Command gcc -ErrorAction SilentlyContinue)) {
+            $candidates = @("C:\msys64\mingw64\bin", "C:\rtools40\usr\bin")
+            foreach ($path in $candidates) {
+              if (Test-Path $path) {
+                Add-Content $env:GITHUB_PATH "$path"
+                Write-Host "Added $path to GITHUB_PATH"
+                break
+              }
+            }
+          }
+
+      - name: Restore Zig toolchain
+        id: zig
+        uses: actions/cache/restore@v5
+        with:
+          path: build/.cache/zig-x86_64-windows-0.16.0
+          key: zig-0.16.0-x86_64-windows
+
+      - name: Build Release Packages
+        shell: pwsh
+        run: ./build/build-release.ps1
+
+      - name: Save Zig toolchain
+        if: steps.zig.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: build/.cache/zig-x86_64-windows-0.16.0
+          key: zig-0.16.0-x86_64-windows
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            Releases/Filee-Setup.exe
+            Releases/Filee-win-x64.zip
+            Releases/SHA256SUMS.txt
+          generate_release_notes: true
+          draft: false
+          prerelease: false

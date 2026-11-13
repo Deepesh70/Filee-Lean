@@ -510,3 +510,23 @@ Filee registers two context menu mechanisms on Windows:
    - Zero-admin cascading submenus registered in `HKCU:\Software\Classes` across 5 file categories (Images, Documents, Spreadsheets, PDF, Data).
    - Launches `filee-run.exe` which triggers the `IDC_WAIT` mouse loading spinner and invokes `filee-cli.exe` silently in the background (`CREATE_NO_WINDOW`).
 
+## Release Packaging & Automated Installation
+
+Filee provides two official release distribution formats produced by `build/build-release.ps1`:
+
+1. **`Filee-Setup.exe` (1-Click Zero-Admin Installer)**:
+   - Built from `src/Filee.Setup/setup.c` and `setup.rc` using MinGW GCC and `windres`.
+   - Embeds the official application icon and a compressed self-contained payload archive as an `RT_RCDATA` resource.
+   - Requires zero administrator rights. Installs to `%LOCALAPPDATA%\Programs\Filee`.
+   - Extracts the payload via Windows native `tar.exe` into the destination.
+   - Automatically executes `filee-cli.exe install --quiet`, registering context menus, Windows 11 sparse package, User `PATH`, and Windows Settings (`HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\Filee`).
+   - Supports non-interactive / silent execution with `/S`, `/s`, `--silent`, or `--quiet`.
+
+2. **`Filee-win-x64.zip` (Portable Package)**:
+   - Self-contained, portable zip archive that can be extracted anywhere.
+   - Contains `install.cmd` and `uninstall.cmd` helper scripts for instant in-place context menu and PATH registration.
+
+3. **Automated CI/CD Workflow (`.github/workflows/release.yml`)**:
+   - Triggers on tag pushes matching `v*`.
+   - Compiles native components, publishes self-contained win-x64 binaries, runs the test suite, bundles the installer and portable archive, and publishes them to GitHub Releases with SHA-256 manifests.
+

@@ -10,138 +10,44 @@ Filee is an ultra-lean file converter with zero resident RAM: it runs on-demand 
 
 ### System Requirements
 - **OS:** Windows 10 or Windows 11 (64-bit).
-- **Runtime:** .NET 10 Desktop Runtime (or included in self-contained builds).
+- **Admin Rights:** None needed (0 UAC prompts).
+- **Runtimes:** None needed (all release packages are 100% self-contained).
 
 ---
 
-### Step-by-Step Installation
+### Option A: 1-Click Installer (Recommended)
 
-#### Step 1: Download or Extract Filee
-Place the Filee folder in your preferred location (for example, `C:\Program Files\Filee` or `C:\Users\<YourUsername>\AppData\Local\Programs\Filee`).
+1. Download **`Filee-Setup.exe`** from the latest GitHub Release.
+2. Double-click **`Filee-Setup.exe`** and click **OK**.
+3. Setup automatically:
+   - Installs Filee to `%LOCALAPPDATA%\Programs\Filee`.
+   - Registers all Explorer right-click context menus.
+   - Deploys the Windows 11 sparse package (`FileeExplorerMenu.msix`).
+   - Adds `filee` to your User `PATH` (works in any terminal immediately).
+   - Registers Filee in Windows Settings → **Installed Apps**.
 
-Ensure the folder contains:
-- `filee-cli.exe` (headless converter engine)
-- `filee-run.exe` (windowless launcher that triggers the mouse loading spinner)
-- `FileeExplorerMenu.dll` (native COM shell extension)
+---
 
-#### Step 2: Register Explorer Context Menu (No Admin Required)
-Open PowerShell (press <kbd>Win</kbd> + <kbd>X</kbd> → **Terminal** or **PowerShell**) and run:
+### Option B: Portable Package (.zip)
 
-```powershell
-$installDir = "C:\Path\To\Filee" # Set your actual Filee directory path here
-
-$cli = Join-Path $installDir "filee-cli.exe"
-$launcher = Join-Path $installDir "filee-run.exe"
-
-# 1. Images (.png, .jpg, .webp, .bmp, .gif, .svg)
-$imgRoot = "HKCU:\Software\Classes\SystemFileAssociations\image\shell\Filee"
-New-Item -Path $imgRoot -Force | Out-Null
-Set-ItemProperty $imgRoot -Name "MUIVerb" -Value "Convert with Filee"
-Set-ItemProperty $imgRoot -Name "SubCommands" -Value ""
-Set-ItemProperty $imgRoot -Name "Icon" -Value "`"$cli`",0"
-@(
-    @("to_webp", "Convert to WebP (.webp)", "webp"),
-    @("to_png",  "Convert to PNG (.png)",   "png"),
-    @("to_jpg",  "Convert to JPEG (.jpg)",  "jpg"),
-    @("to_pdf",  "Convert to PDF (.pdf)",   "pdf")
-) | ForEach-Object {
-    $sub = "$imgRoot\shell\$($_[0])"
-    New-Item -Path "$sub\command" -Force | Out-Null
-    Set-ItemProperty $sub -Name "MUIVerb" -Value $_[1]
-    Set-ItemProperty "$sub\command" -Name "(Default)" -Value "`"$launcher`" convert `"%1`" --to $($_[2]) --quiet --notify"
-}
-
-# 2. Documents (.md, .txt)
-foreach ($ext in ".md", ".txt") {
-    $docRoot = "HKCU:\Software\Classes\SystemFileAssociations\$ext\shell\Filee"
-    New-Item -Path $docRoot -Force | Out-Null
-    Set-ItemProperty $docRoot -Name "MUIVerb" -Value "Convert with Filee"
-    Set-ItemProperty $docRoot -Name "SubCommands" -Value ""
-    Set-ItemProperty $docRoot -Name "Icon" -Value "`"$cli`",0"
-    @(
-        @("to_pdf",  "Convert to PDF (.pdf)",        "pdf"),
-        @("to_docx", "Convert to Word (.docx)",      "docx"),
-        @("to_html", "Convert to HTML Web Page (.html)", "html")
-    ) | ForEach-Object {
-        $sub = "$docRoot\shell\$($_[0])"
-        New-Item -Path "$sub\command" -Force | Out-Null
-        Set-ItemProperty $sub -Name "MUIVerb" -Value $_[1]
-        Set-ItemProperty "$sub\command" -Name "(Default)" -Value "`"$launcher`" convert `"%1`" --to $($_[2]) --quiet --notify"
-    }
-}
-
-# 3. PDF Documents (.pdf)
-$pdfRoot = "HKCU:\Software\Classes\SystemFileAssociations\.pdf\shell\Filee"
-New-Item -Path $pdfRoot -Force | Out-Null
-Set-ItemProperty $pdfRoot -Name "MUIVerb" -Value "Convert with Filee"
-Set-ItemProperty $pdfRoot -Name "SubCommands" -Value ""
-Set-ItemProperty $pdfRoot -Name "Icon" -Value "`"$cli`",0"
-@(
-    @("to_png",  "Extract as Images (.png)",     "png"),
-    @("to_docx", "Convert to Word (.docx)",      "docx"),
-    @("to_md",   "Convert to Markdown (.md)",    "md"),
-    @("to_txt",  "Extract Plain Text (.txt)",    "txt")
-) | ForEach-Object {
-    $sub = "$pdfRoot\shell\$($_[0])"
-    New-Item -Path "$sub\command" -Force | Out-Null
-    Set-ItemProperty $sub -Name "MUIVerb" -Value $_[1]
-    Set-ItemProperty "$sub\command" -Name "(Default)" -Value "`"$launcher`" convert `"%1`" --to $($_[2]) --quiet --notify"
-}
-
-# 4. Spreadsheets (.xlsx, .xls, .ods, .csv)
-foreach ($ext in ".xlsx", ".xls", ".ods", ".csv") {
-    $sheetRoot = "HKCU:\Software\Classes\SystemFileAssociations\$ext\shell\Filee"
-    New-Item -Path $sheetRoot -Force | Out-Null
-    Set-ItemProperty $sheetRoot -Name "MUIVerb" -Value "Convert with Filee"
-    Set-ItemProperty $sheetRoot -Name "SubCommands" -Value ""
-    Set-ItemProperty $sheetRoot -Name "Icon" -Value "`"$cli`",0"
-    @(
-        @("to_csv",  "Convert to CSV (.csv)",        "csv"),
-        @("to_xlsx", "Convert to Excel (.xlsx)",     "xlsx")
-    ) | ForEach-Object {
-        $sub = "$sheetRoot\shell\$($_[0])"
-        New-Item -Path "$sub\command" -Force | Out-Null
-        Set-ItemProperty $sub -Name "MUIVerb" -Value $_[1]
-        Set-ItemProperty "$sub\command" -Name "(Default)" -Value "`"$launcher`" convert `"%1`" --to $($_[2]) --quiet --notify"
-    }
-}
-
-# 5. Structured Data (.json, .yaml, .yml, .toml, .xml)
-foreach ($ext in ".json", ".yaml", ".yml", ".toml", ".xml") {
-    $dataRoot = "HKCU:\Software\Classes\SystemFileAssociations\$ext\shell\Filee"
-    New-Item -Path $dataRoot -Force | Out-Null
-    Set-ItemProperty $dataRoot -Name "MUIVerb" -Value "Convert with Filee"
-    Set-ItemProperty $dataRoot -Name "SubCommands" -Value ""
-    Set-ItemProperty $dataRoot -Name "Icon" -Value "`"$cli`",0"
-    @(
-        @("to_json", "Convert to JSON (.json)",      "json"),
-        @("to_yaml", "Convert to YAML (.yaml)",      "yaml"),
-        @("to_toml", "Convert to TOML (.toml)",      "toml"),
-        @("to_csv",  "Convert to CSV Table (.csv)",  "csv")
-    ) | ForEach-Object {
-        $sub = "$dataRoot\shell\$($_[0])"
-        New-Item -Path "$sub\command" -Force | Out-Null
-        Set-ItemProperty $sub -Name "MUIVerb" -Value $_[1]
-        Set-ItemProperty "$sub\command" -Name "(Default)" -Value "`"$launcher`" convert `"%1`" --to $($_[2]) --quiet --notify"
-    }
-}
-
-Write-Host "Filee Explorer Context Menu registered successfully!" -ForegroundColor Green
-```
-
-This takes effect **immediately** without needing to restart Explorer or restart your computer.
+1. Download **`Filee-win-x64.zip`** from the latest GitHub Release.
+2. Extract the archive anywhere on your machine (e.g., `D:\Tools\Filee`).
+3. Double-click **`install.cmd`** in the extracted folder to register context menus and add Filee to your User `PATH` in-place.
+4. To remove shell integration later, double-click **`uninstall.cmd`**.
 
 ---
 
 ### How to Use
+
 1. **Right-Click in Explorer:** Right-click any supported file (e.g. `image.png`, `notes.md`, `sheet.xlsx`, `report.pdf`, `config.json`).
 2. **Choose Format:** Hover over **Convert with Filee ▸** and click your desired output format.
-3. **Execution:** The mouse cursor switches to the busy/loading state, no command prompt window appears, and a native Windows Action Center notification appears once the converted file is ready.
+3. **Execution:** The mouse cursor switches to the busy/loading state, no command prompt window appears, and a native Windows toast notification appears once the converted file is ready.
 
 ---
 
 ### Command Line Usage
-To convert files from your terminal or scripts:
+
+From any PowerShell, Command Prompt, or Windows Terminal window:
 
 ```powershell
 # Convert single file
@@ -152,99 +58,45 @@ filee convert a.png b.png --to jpg --quality 85 --notify
 
 # Watch a folder for incoming files
 filee watch D:\Incoming --to pdf --move-originals
+
+# Shell integration commands
+filee install      # Registers context menus and PATH
+filee uninstall    # Removes context menus and PATH
 ```
 
 ---
 
-### How to Uninstall / Unregister
-To remove the context menu entries from your user account:
+### How to Uninstall
 
-```powershell
-$keys = @(
-    "HKCU:\Software\Classes\SystemFileAssociations\image\shell\Filee",
-    "HKCU:\Software\Classes\SystemFileAssociations\.md\shell\Filee",
-    "HKCU:\Software\Classes\SystemFileAssociations\.txt\shell\Filee",
-    "HKCU:\Software\Classes\SystemFileAssociations\.pdf\shell\Filee",
-    "HKCU:\Software\Classes\SystemFileAssociations\.xlsx\shell\Filee",
-    "HKCU:\Software\Classes\SystemFileAssociations\.xls\shell\Filee",
-    "HKCU:\Software\Classes\SystemFileAssociations\.ods\shell\Filee",
-    "HKCU:\Software\Classes\SystemFileAssociations\.csv\shell\Filee",
-    "HKCU:\Software\Classes\SystemFileAssociations\.json\shell\Filee",
-    "HKCU:\Software\Classes\SystemFileAssociations\.yaml\shell\Filee",
-    "HKCU:\Software\Classes\SystemFileAssociations\.yml\shell\Filee",
-    "HKCU:\Software\Classes\SystemFileAssociations\.toml\shell\Filee",
-    "HKCU:\Software\Classes\SystemFileAssociations\.xml\shell\Filee"
-)
-foreach ($key in $keys) {
-    Remove-Item -Path $key -Recurse -Force -ErrorAction SilentlyContinue
-}
-Write-Host "Filee context menu removed." -ForegroundColor Green
-```
+You can uninstall Filee at any time using standard Windows tools:
+1. Open **Windows Settings** (<kbd>Win</kbd> + <kbd>I</kbd>).
+2. Go to **Apps** → **Installed Apps**.
+3. Search for **Filee** and click **Uninstall**.
+
+Or run `filee uninstall` from your terminal or `uninstall.cmd` from the portable folder.
 
 ---
 
 ## 2. Developer Guide (Building from Source)
 
 ### Prerequisites
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (`dotnet --version` should return `10.0.xxx`).
-- PowerShell 7 (`pwsh`) or Windows PowerShell.
-- Git.
+- Windows 10 or 11 (64-bit)
+- [.NET 10 SDK](https://dotnet.microsoft.com/)
+- MinGW GCC (`gcc.exe` and `windres.exe` in PATH)
+- PowerShell 7+ (`pwsh`)
 
-*Note: Visual Studio C++ and Windows SDK are **not** required. The build script automatically downloads a pinned, portable Zig 0.16.0 compiler into `build/.cache` to compile native Win32 C code.*
+### Build Steps
 
----
-
-### Build Instructions
-
-#### 1. Clone the Repository
 ```powershell
+# 1. Clone repository
 git clone https://github.com/KnifeLemon/Filee.git
 cd Filee
+
+# 2. Build and verify test suite
+dotnet test Filee.slnx
+
+# 3. Build release packages (Filee-Setup.exe and Filee-win-x64.zip)
+pwsh build/build-release.ps1
 ```
 
-#### 2. Build the Headless CLI & Core Engine
-```powershell
-dotnet build src/Filee.Cli/Filee.Cli.csproj
-```
-
-#### 3. Build the Native Windows 11 Explorer Extension
-```powershell
-pwsh build/build-explorer-menu.ps1
-```
-This script:
-1. Downloads and SHA-256 checks `zig-x86_64-windows-0.16.0` into `build/.cache`.
-2. Compiles `src/Filee.ExplorerMenu/FileeExplorerMenu.c` with `-nostdlib` into `FileeExplorerMenu.dll` (16.5 KB).
-3. Packages `FileeExplorerMenu.msix` using the Windows packaging API.
-
-#### 4. Compile the Windowless Launcher (`filee-run.exe`)
-```powershell
-$zig = "build/.cache/zig-x86_64-windows-0.16.0/zig.exe"
-& $zig cc -target x86_64-windows-gnu -O2 -s -nostdlib -Wall -Wextra `
-    -isystem "build/.cache/zig-x86_64-windows-0.16.0/lib/libc/include/any-windows-any" `
-    src/Filee.ExplorerMenu/filee-run.c -lkernel32 -luser32 `
-    "-Wl,--entry=WinMain" "-Wl,--subsystem,windows" `
-    -o publish/win-x64/filee-run.exe
-```
-
-#### 5. Publish Release Binaries
-```powershell
-dotnet publish src/Filee.Cli/Filee.Cli.csproj -c Release -r win-x64 -o publish/win-x64 --self-contained false
-Copy-Item build/.cache/explorer-menu/FileeExplorerMenu.* publish/win-x64/ -Force
-Copy-Item publish/win-x64/filee-cli.exe publish/win-x64/Filee.exe -Force
-```
-
----
-
-### Running Automated Tests
-
-Run the core engine test suite (1,140 unit and integration tests):
-```powershell
-dotnet test tests/Filee.Core.Tests/Filee.Core.Tests.csproj --no-restore
-```
-
-Run the SkiaSharp image converter test suite:
-```powershell
-dotnet test tests/Filee.Engines.Tests/Filee.Engines.Tests.csproj --no-restore
-```
-
-All tests should pass with 0 failures.
+All release artifacts will be placed in the `Releases/` directory accompanied by `SHA256SUMS.txt`.

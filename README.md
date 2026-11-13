@@ -43,6 +43,17 @@
 
 ---
 
+## Quick Start
+
+### 1-Click Installation (Windows 10 & 11)
+1. Download **[`Filee-Setup.exe`](https://github.com/Deepesh70/Filee-Lean/releases/latest)** from the latest release.
+2. Run the installer (zero admin privileges required).
+3. Right-click any file in Windows Explorer to convert, or run `filee` in any terminal!
+
+Prefer portable? Download **`Filee-win-x64.zip`**, extract anywhere, and double-click `install.cmd`.
+
+---
+
 ## Supported Formats (9 Core Engines)
 
 Filee focuses on the core document, image, spreadsheet, and data formats used every day, powered by high-speed, lightweight libraries:

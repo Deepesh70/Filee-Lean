@@ -40,6 +40,20 @@ internal static class Cli
             case "version":
                 output.WriteLine($"filee {Help.Version}");
                 return Success;
+            case "install":
+                if (!OperatingSystem.IsWindows())
+                {
+                    errors.WriteLine("filee: 'install' is only supported on Windows.");
+                    return UsageError;
+                }
+                return InstallerCommand.Install(options, output, errors);
+            case "uninstall":
+                if (!OperatingSystem.IsWindows())
+                {
+                    errors.WriteLine("filee: 'uninstall' is only supported on Windows.");
+                    return UsageError;
+                }
+                return InstallerCommand.Uninstall(options, output, errors);
         }
 
         await using var host = (createHost ?? (() => CliHost.Create()))();
