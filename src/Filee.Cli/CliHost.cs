@@ -62,12 +62,15 @@ internal sealed class CliHost : IAsyncDisposable
         return null;
     }
 
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static Func<string, TrashRefusal?> WindowsTrash() => new Filee.Platform.Windows.WindowsPlatformServices().MoveToTrash;
 
+    [System.Runtime.Versioning.SupportedOSPlatform("macos")]
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static Func<string, TrashRefusal?> MacTrash() => new Filee.Platform.MacOS.MacOSPlatformServices().MoveToTrash;
 
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static Func<string, TrashRefusal?> LinuxTrash() => new Filee.Platform.Linux.LinuxPlatformServices().MoveToTrash;
 
