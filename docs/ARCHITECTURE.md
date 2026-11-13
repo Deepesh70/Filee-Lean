@@ -497,103 +497,16 @@ applied by `WindowsPlatformServices.SetContextMenu` at start-up and whenever set
     removes the package, the title file, the classic verb, the startup entry and downloaded engines; the uninstaller
     then asks whether to delete the settings too (they stay by default).
   - Build: `pwsh build/build-explorer-menu.ps1` downloads a pinned Zig (SHA-256 checked) into `build/.cache`, compiles
-    the DLL and packs the MSIX with `build/tools/make-explorer-package.cs` (Windows' own packaging API, no SDK).
-    Output: `build/.cache/explorer-menu`; CI builds it for the tests, `build/build-installer.ps1` builds it into the
-    publish folder.
+## Windows Explorer Integration
 
-Debugging: `Get-AppxPackage Filee.ExplorerMenu` shows the registration (`InstallLocation` is the external location);
-`Get-AppPackageLog -ActivityID <id>` explains a failed deployment. To try a local build, copy
-`FileeExplorerMenu.dll` + `.msix` next to an installed Filee.exe and use the button, or run elevated:
-`Add-AppxPackage -Path FileeExplorerMenu.msix -ExternalLocation <folder with Filee.exe> -AllowUnsigned`. Explorer picks
-the entry up for new menus; if not, restart Explorer. To remove it by hand:
-`Get-AppxPackage Filee.ExplorerMenu | Remove-AppxPackage`.
+Filee registers two context menu mechanisms on Windows:
 
-## Windows installer
+1. **Windows 11 Modern Context Menu (`FileeExplorerMenu.dll`)**:
+   - Freestanding native C COM extension implementing `IExplorerCommandHandler`.
+   - Packaged with an unsigned sparse MSIX manifest generated on-the-fly via `build/tools/make-explorer-package.cs`.
+   - Queries file selection, builds dynamic submenus, and dispatches execution to `filee-run.exe`.
 
-`Filee-<version>-win-Setup.exe` is Filee's own installer, `src/Filee.Setup` (it replaced the Inno Setup script of
-1.x). It is an Avalonia program with the app's look and translations: it links `Styles/Soft.axaml` (which therefore
-styles only Avalonia's own controls; Filee's controls are in `Controls.axaml`), `SoftPalette` (accent, radii, font
-order), `AppLanguages` and `Assets/i18n/*.json` (Setup's texts are the `installer.*` keys). To stay small it uses
-Windows' own UI fonts (Segoe UI, Nirmala UI and the UI language's CJK font first; titles bold, as those CJK fonts
-have no semibold) instead of the app's embedded Noto fonts.
+2. **Windows 10 / Classic Context Menu (`filee-run.exe`)**:
+   - Zero-admin cascading submenus registered in `HKCU:\Software\Classes` across 5 file categories (Images, Documents, Spreadsheets, PDF, Data).
+   - Launches `filee-run.exe` which triggers the `IDC_WAIT` mouse loading spinner and invokes `filee-cli.exe` silently in the background (`CREATE_NO_WINDOW`).
 
-- **Look**: one borderless 640×420 card (`SetupWindow`, its own window buttons, drag to move) whose states crossfade
-  (`Views/StateViews.axaml`): Welcome (the logo assembling itself, `DonutLogo`; one Install button; an Options sheet
-  sliding up with the language, folder, options and engines), Progress (the new version's "What's new" slides, a thin
-  `ShimmerBar`), Done (`CheckBurst`, "Launch Filee"), Failed ("Copy details") and the uninstaller's states.
-  `SoftBackdrop` draws slowly drifting accent blobs behind it. The slides are the app's (`SlideShow`, `AnimatedImage`,
-  `SlideDeck` and `Assets/WhatsNew`, linked): the newest deck up to the version being installed, advancing every 6 s.
-  Every animation runs only while the window is visible and not minimized (`FrameLoop`) and is a still picture when
-  Windows' "Show animations" is off (`SetupMotion`). `/SILENT` shows only the progress card, without slides. After an
-  update Setup starts Filee with `--background --whats-new`, so the slides show once in the app as well.
-
-- **Build** (`build/build-installer.ps1`): Setup is published as one self-contained, trimmed file
-  (`-p:FileeSetupPublish=true`), so it runs on Windows 10 1809+ x64 without .NET. `build/tools/make-setup.cs` appends
-  the app's publish folder as the payload: `[program][LZMA streams of all files][manifest JSON][72-byte trailer]`
-  (`SetupPayload`): ~48 MB segments compressed in parallel with SharpCompress's LZMA (48 MB dictionary), programs
-  first through the x86 branch filter (`X86Filter`, from the LZMA SDK) as 7-Zip and Inno Setup do. The manifest lists
-  every file with its size, SHA-256 and filter, the SHA-256 of the compressed data, the version and the engines to
-  offer (from `EngineDownloads`). Setup.exe's signature goes after the trailer (Setup looks
-  for the trailer in front of the certificate table; the manifest is padded so the file ends on the 8-byte boundary
-  signtool needs), so Setup.exe is signed after packing. The Setup program is signed before: its signature stays at
-  the end of the program, Setup.exe's header stops pointing to it, and the manifest's `programSignature` lets the
-  uninstaller copied out of Setup.exe (`CopyProgramTo`) point to it again, so `uninstall.exe` is signed too. The code is trim- and AOT-safe
-  (compiled bindings, source-generated P/Invoke and COM); Native AOT would need the MSVC linker on the build machine
-  and still couldn't link SkiaSharp's native libraries in.
-- **Rights**: Setup starts unelevated (asInvoker) and, for an install for all users, starts itself again with
-  administrator rights (one UAC prompt) and waits. The elevated copy writes what to start at the end into a file
-  (`/LAUNCHFILE`), and the unelevated one starts Filee from it as the signed-in user. Elevated without such a parent
-  (run as administrator, a package manager), it starts Filee with Explorer's token.
-- **Install** (`Installer`): checks the free space and the payload's hash first, closes Filee (`--quit`, then ends
-  what still runs from the folder), unpacks into `<folder>\~setup-*\new` checking every file, checks that every
-  program finds the Microsoft C++ runtime it imports (next to it or in System32; `RuntimeCheck`), then swaps the files
-  in (`FileSwap`: replaced and obsolete files are renamed into a backup, which works for files in use) and writes the
-  uninstall entry, the shortcuts and PATH. Any failure until then puts everything back. Filee's own settings (Explorer
-  menu, start at sign-in, engines, a picked language) are handed to Filee on its command line, as before.
-- **Updates from 1.x**: the uninstall key stays `{C8686E06-8327-40A2-B0F7-3DEDD61D9248}_is1` (Inno Setup's AppId), so
-  Apps & Features keeps one Filee. `PreviousInstall` reads the folder and choices of an Inno Setup installation; an
-  update keeps the folder and what is registered now (desktop shortcut, PATH, the top-level menu package), removes
-  `unins000.*` and every file 2.0 doesn't have, and rewrites the key without the `Inno Setup: …` values. The app
-  counts as installed when `uninstall.exe` (or 1.x's `unins000.exe`) is next to it (`UpdateService.IsInstalled`).
-- **Uninstall**: `uninstall.exe` is Setup without its payload. Run from the install folder it copies itself to
-  `%TEMP%` and waits for the copy, which removes what `uninstall.json` lists (other files in the folder stay), the
-  shortcuts, the PATH entry and the key. `Filee.exe --uninstall-cleanup` runs as the signed-in user (`RunAsSignedInUser`):
-  the startup entry, the classic verb and the engines are theirs, and the pipe of a Filee without administrator rights
-  refuses an elevated client (`CurrentUserOnly` compares the pipe's owner with the token's owner, which is
-  Administrators when elevated), so that Filee would never hear `--quit`. Files in use are moved out and deleted at the
-  next restart. Only programs `uninstall.json` lists are ended. A Filee that can't be ended, or a file that can't be
-  moved or renamed, fails the uninstall and keeps the key, `uninstall.json` and `uninstall.exe`, so it can be run again;
-  `uninstall.json` itself is never scheduled or renamed. A program without a payload is the uninstaller only as `uninstall.exe`, as `Filee.Setup.exe` (a development build) or with `/UNINSTALL`
-  (`SetupStart`); any other name is a Setup.exe whose download didn't finish, and it says so instead (exit code 1).
-- **Command line**: Inno Setup's switches (`SetupOptions`, documented at the top of the file), because Filee 1.x
-  updates itself with `/SILENT /NORESTART` and winget passes `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART`. Exit codes as
-  Inno Setup's: 0 done, 1 could not start, 2 cancelled before installing (also a declined UAC prompt), 4 failed.
-- **Testing**: `Filee.Setup.Tests` runs installs, updates (also over a simulated 1.x installation) and uninstalls
-  against `MemoryRegistry`, a fake `ISetupSystem` and scratch folders, and renders every page. `/SANDBOX=<folder>`
-  runs the real Setup with a registry file and all folders inside `<folder>`; `build-installer.ps1 -CheckOnly` (CI)
-  installs, updates and uninstalls that way.
-
-## Linux installer and updates
-
-On Linux, Filee is distributed as a self-contained archive (`Filee-<version>-<rid>.tar.gz` for `linux-x64` and
-`linux-arm64`) containing the application, `filee-cli`, bundled conversion engines, application icon, `.desktop` launcher,
-and standalone shell scripts (`install.sh`, `uninstall.sh`).
-
-- **Installation**: `install.sh` installs for the current user into `~/.local/share/filee/application` without root,
-  creating a launcher symlink at `~/.local/bin/filee` and desktop registration at
-  `~/.local/share/applications/com.filee.app.desktop`. A `.filee-package` marker containing `com.filee.app` identifies
-  the directory as an authentic managed installation. Running without `--upgrade` refuses to overwrite an existing
-  installation.
-- **In-app updates** (`UpdateService`): Checks GitHub releases for matching `<rid>.tar.gz` and `<rid>-SHA256SUMS.txt`
-  assets. The tarball is verified against SHA-256 before extraction; a build that carries the update key
-  (`FileeUpdatePublicKey`) first checks the checksum file's signature (`<rid>-SHA256SUMS.txt.sig`, `UpdateSignature`). Archive extraction validates that all entries stay
-  within the target directory, rejecting absolute paths, directory symlinks, and escaping links, and masks permissions to
-  standard rwx bits (excluding setuid/setgid/sticky bits).
-- **Transactional upgrade**: `UpdateAsync` stages the payload in a private directory (`~/.local/share/filee/.update-*`),
-  spawns a detached `/bin/sh` helper, and requests application shutdown (`App.Quit`). Once the old process exits, the
-  helper executes `install.sh --upgrade` (which safely moves the existing installation to a backup directory, validates the
-  new files, and rolls back on failure or signal interruption), and restarts Filee with `--background --whats-new`.
-  Output and rollback diagnostics are appended to Filee's daily log (`~/.config/Filee/logs/`). Downloaded conversion engines
-  (`~/.local/share/Filee/engines`) and user settings (`~/.config/Filee`) remain untouched.
-- **Uninstallation**: `uninstall.sh` removes the application directory, desktop launcher, and `~/.local/bin/filee` symlink
-  after verifying the `.filee-package` marker. User settings and converted files are kept.

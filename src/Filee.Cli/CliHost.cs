@@ -54,11 +54,22 @@ internal sealed class CliHost : IAsyncDisposable
     }
 
     /// <summary>The system's Recycle Bin / Trash for "Replace the original", as in the app; none elsewhere.</summary>
-    private static Func<string, TrashRefusal?>? Trash() =>
-        OperatingSystem.IsWindows() ? new Filee.Platform.Windows.WindowsPlatformServices().MoveToTrash
-        : OperatingSystem.IsMacOS() ? new Filee.Platform.MacOS.MacOSPlatformServices().MoveToTrash
-        : OperatingSystem.IsLinux() ? new Filee.Platform.Linux.LinuxPlatformServices().MoveToTrash
-        : null;
+    private static Func<string, TrashRefusal?>? Trash()
+    {
+        if (OperatingSystem.IsWindows()) return WindowsTrash();
+        if (OperatingSystem.IsMacOS()) return MacTrash();
+        if (OperatingSystem.IsLinux()) return LinuxTrash();
+        return null;
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static Func<string, TrashRefusal?> WindowsTrash() => new Filee.Platform.Windows.WindowsPlatformServices().MoveToTrash;
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static Func<string, TrashRefusal?> MacTrash() => new Filee.Platform.MacOS.MacOSPlatformServices().MoveToTrash;
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static Func<string, TrashRefusal?> LinuxTrash() => new Filee.Platform.Linux.LinuxPlatformServices().MoveToTrash;
 
     public ValueTask DisposeAsync() => Queue.DisposeAsync();
 }
