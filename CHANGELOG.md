@@ -14,6 +14,18 @@ change, a language may repeat; a language without lines shows the English ones):
 - `recommended`: bug fixes. The card shows once per version.
 - `optional`: new features only. No card, the sidebar button only.
 
+## 1.0.0
+
+Initial release of Filee-Lean: an ultra-lean, zero-resident-RAM file converter for Windows 10 and 11.
+
+- **Zero Resident RAM:** Spawns on-demand, converts, delivers visual/toast feedback, and terminates immediately.
+- **Windows Explorer Context Menu:** Native cascading right-click conversion menus for Images, Documents, Spreadsheets, PDF, and Structured Data.
+- **Zero Admin Rights:** Installs into `%LOCALAPPDATA%\Programs\Filee` and `HKCU` without UAC prompts.
+- **1-Click Setup:** Bundled with self-extracting native installer `Filee-Setup.exe` and portable `Filee-win-x64.zip`.
+- **Offline & Private:** 100% offline conversions powered by SkiaSharp, PDFium, PdfPig, and Markdig.
+
+---
+
 ## 2.4.0
 
 <!-- update

@@ -23,7 +23,7 @@ Set-Location $root
 if (-not $Version) {
     $props = [xml](Get-Content (Join-Path $root 'Directory.Build.props'))
     $Version = $props.Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
-    if (-not $Version) { $Version = '2.4.0' }
+    if (-not $Version) { $Version = '1.0.0' }
 }
 
 Write-Host "==================================================" -ForegroundColor Cyan
